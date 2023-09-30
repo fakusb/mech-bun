@@ -1,7 +1,11 @@
-mod data;
+#![feature(return_position_impl_trait_in_trait)]
 
-todo!("Hardcode first level, to main game loop, and test printing of level. Then implement game trransition logic.")
+
+
+mod data;
+mod tui;
 
 fn main() {
-    println!("Hello, world!");
+    let mut state = data::levels::level1();
+    let _ = tui::run_level(&mut state);
 }
