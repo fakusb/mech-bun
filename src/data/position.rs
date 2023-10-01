@@ -1,4 +1,5 @@
-use std::ops::Add;
+use std::ops::{Add, AddAssign};
+use strum::IntoEnumIterator;
 
 use super::grid::{Direction, LEVEL_WIDTH, LEVEL_HEIGHT};
 
@@ -72,12 +73,12 @@ impl<N: TryFrom<i8>> TryInto<(N, N)> for Position {
 }
 
 impl Add<Position> for Position {
-    type Output = Option<Position>;
+    type Output = Position;
 
     fn add(self, rhs: Position) -> Self::Output {
         match (self.x.checked_add(rhs.x), self.y.checked_add(rhs.y)) {
-            (Some(x), Some(y)) => Some((x, y).try_into().ok()?),
-            _ => None,
+            (Some(x), Some(y)) => (x, y).try_into().unwrap(),
+            _ => unreachable!()
         }
     }
 }
@@ -92,22 +93,66 @@ impl Position {
         }
         return Some((x, y));
     }
+
+    /// distance and direction same position gest arbitrary direction, and distance 0
+    /// 
+    pub fn distance_to_straight_line(self, p:Position) -> Option<(Direction,u8)>{
+        let dx = self.x - p.x;
+        let dy = self.y - p.y;
+        if dx == 0 {
+            if dy < 0 {
+                Some((Direction::Down,-dy as u8))
+            } else {
+                Some((Direction::Up,dy as u8 ))
+            }
+        } else if self.y == p.y {
+            if dx < 0 {
+                Some((Direction::Right,-dx as u8))
+            } else {
+                Some((Direction::Left,dx as u8 ))
+            }
+        }
+        else {
+            None
+        }
+    }
+
 }
+
+impl Add<Direction> for Position {
+    type Output = Position;
+
+    fn add(self, rhs: Direction) -> Self::Output {
+        self + rhs.offset()
+    }
+}
+
+impl AddAssign<Direction> for Position {
+
+    fn add_assign(&mut self, rhs: Direction) {
+        *self = self.add(rhs)
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {
+    use crate::data::grid::Direction;
+
     use super::Position;
+    use strum::IntoEnumIterator;
 
     #[test]
     fn test_position_order() {
         assert!(Position { x: 1, y: 1 } >= Position { x: 2, y: 0 });
     }
-}
 
-impl Add<Direction> for Position {
-    type Output = Option<Position>;
-
-    fn add(self, rhs: Direction) -> Self::Output {
-        self + rhs.offset()
+    #[test]
+    fn test_distance_to_straight_line() {
+        let p = Position::default();
+        for d in Direction::iter() {
+            assert_eq!(p.distance_to_straight_line(p + d), Some((d,1)) )
+        }
     }
 }

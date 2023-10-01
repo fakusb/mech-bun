@@ -1,4 +1,4 @@
-use super::level_state::{LevelStateNaive, LevelState};
+use super::level_state::LevelState;
 
 
 macro_rules! level_path {
@@ -8,6 +8,8 @@ macro_rules! level_path {
 }
 
 
-pub fn level1() -> LevelStateNaive {
-  LevelState::parse_level::<LevelStateNaive>(include_str!(level_path!("DemoCenter/1.level"))).expect("valid")
+pub fn level() -> LevelState {
+  let mut res = LevelState::new();
+  res.parse_level(include_str!(level_path!("DemoCenter/2.level"))).expect("valid");
+  res
 }

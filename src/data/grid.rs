@@ -1,4 +1,6 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Neg};
+use strum_macros::{FromRepr,EnumIter};
+use strum::IntoEnumIterator;
 
 use super::Position;
 
@@ -14,12 +16,12 @@ pub struct Tunnels {
 pub enum GroundTile {
     Hole,
     Wall { breakable: bool, tunnels: Tunnels },
-    Floor,
+    Floor { isEntry: bool },
 }
 
 impl Default for GroundTile {
     fn default() -> Self {
-        Self::Floor
+        Self::Floor { isEntry: false }
     }
 }
 
@@ -39,12 +41,31 @@ pub enum TileItem {
     Bunstack,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, FromRepr, EnumIter)]
 pub enum Direction {
     Up = 0,
-    Down = 1,
-    Left = 2,
+    Left = 1,
+    Down = 2,
     Right = 3,
+}
+
+impl Direction {
+    pub fn turn_left(self) -> Direction {
+        Direction::from_repr((self as usize + 1) % 4).unwrap()
+    }
+
+    pub fn turn_right(self) -> Direction {
+        Direction::from_repr((self as usize + 3) % 4).unwrap()
+    }
+
+}
+
+impl Neg for Direction {
+    type Output = Direction;
+
+    fn neg(self) -> Self::Output {
+        Direction::from_repr((self as usize + 2) % 4).unwrap()
+    }
 }
 
 impl Index<Direction> for Tunnels {
@@ -72,14 +93,20 @@ impl GroundTile {
                     '▓'
                 }
             }
-            GroundTile::Floor => ' ',
+            GroundTile::Floor { .. } => ' ',
         }
     }
 
     pub fn is_solid(self) -> bool {
         match self {
             GroundTile::Wall { .. } => true,
-            GroundTile::Floor | GroundTile::Hole => false,
+            GroundTile::Floor { .. } | GroundTile::Hole => false,
+        }
+    }
+    pub fn is_solid_for_bun_from(self,_ : Direction) -> bool {
+        match self {
+            GroundTile::Wall { .. } => true,
+            GroundTile::Floor { .. } | GroundTile::Hole => false,
         }
     }
 }
