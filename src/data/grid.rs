@@ -1,35 +1,24 @@
 use std::ops::{Index, IndexMut, Neg};
-use strum_macros::{FromRepr,EnumIter};
-use strum::IntoEnumIterator;
+use strum::EnumCount;
+use strum_macros::{EnumIter, FromRepr, EnumCount};
 
 use super::Position;
 
 pub const LEVEL_WIDTH: i8 = 15;
 pub const LEVEL_HEIGHT: i8 = 9;
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct Tunnels {
-    tunnels: [bool; 4],
-}
+pub(crate) type Tunnels = [bool;Direction::COUNT];
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum GroundTile {
     Hole,
     Wall { breakable: bool, tunnels: Tunnels },
-    Floor { isEntry: bool },
+    Floor { is_entry: bool },
 }
 
 impl Default for GroundTile {
     fn default() -> Self {
-        Self::Floor { isEntry: false }
-    }
-}
-
-impl Default for Tunnels {
-    fn default() -> Self {
-        Tunnels {
-            tunnels: [false; 4],
-        }
+        Self::Floor { is_entry: false }
     }
 }
 
@@ -41,7 +30,7 @@ pub enum TileItem {
     Bunstack,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, FromRepr, EnumIter)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, FromRepr, EnumIter, EnumCount)]
 pub enum Direction {
     Up = 0,
     Left = 1,
@@ -57,7 +46,6 @@ impl Direction {
     pub fn turn_right(self) -> Direction {
         Direction::from_repr((self as usize + 3) % 4).unwrap()
     }
-
 }
 
 impl Neg for Direction {
@@ -68,21 +56,22 @@ impl Neg for Direction {
     }
 }
 
-impl Index<Direction> for Tunnels {
-    type Output = bool;
+impl<T> Index<Direction> for [T; Direction::COUNT] {
+    type Output = T;
 
-    fn index(&self, index: Direction) -> &bool {
-        return &self.tunnels[index as usize];
+    fn index(&self, index: Direction) -> &Self::Output {
+        &self[index as usize]
     }
 }
 
-impl IndexMut<Direction> for Tunnels {
+impl<T> IndexMut<Direction> for [T; Direction::COUNT] {
     fn index_mut(&mut self, index: Direction) -> &mut Self::Output {
-        return &mut self.tunnels[index as usize];
+        &mut self[index as usize]
     }
 }
 
 impl GroundTile {
+    #[allow(unused)]
     pub fn to_unicode(self) -> char {
         match self {
             GroundTile::Hole => 'o',
@@ -103,7 +92,7 @@ impl GroundTile {
             GroundTile::Floor { .. } | GroundTile::Hole => false,
         }
     }
-    pub fn is_solid_for_bun_from(self,_ : Direction) -> bool {
+    pub fn is_solid_for_bun_from(self, _: Direction) -> bool {
         match self {
             GroundTile::Wall { .. } => true,
             GroundTile::Floor { .. } | GroundTile::Hole => false,
@@ -112,6 +101,7 @@ impl GroundTile {
 }
 
 impl TileItem {
+    #[allow(unused)]
     pub fn to_unicode(self) -> char {
         match self {
             TileItem::Paquerette => 'P',
@@ -123,11 +113,11 @@ impl TileItem {
 impl From<char> for TileItem {
     fn from(c: char) -> Self {
         if ['b', 'B'].contains(&c) {
-            return TileItem::Bun;
+            TileItem::Bun
         } else if ['p', 'P'].contains(&c) {
-            return TileItem::Paquerette;
+            TileItem::Paquerette
         } else {
-            panic!("Unrecognised character: {c}");
+            panic!("Unrecognised character: {c}")
         }
     }
 }

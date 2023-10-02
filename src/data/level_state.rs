@@ -28,16 +28,16 @@ impl LevelState {
         Some((self.data[x][y], res_item))
     }
 
-    pub fn set_tile_at(&mut self, p: Position, t: GroundTile) -> () {
+    pub fn set_tile_at(&mut self, p: Position, t: GroundTile) {
         let (x, y) = self.index_for(p).expect("in range");
         self.data[x][y] = t;
     }
 
-    pub fn set_paquerette(&mut self, p: Position) -> () {
+    pub fn set_paquerette(&mut self, p: Position) {
         self.paquerette = p
     }
 
-    pub fn set_bunny(&mut self, p: Position) -> () {
+    pub fn set_bunny(&mut self, p: Position) {
         self.buns.push(Some(p))
     }
 
@@ -45,10 +45,11 @@ impl LevelState {
         self.paquerette
     }
 
-    pub fn content<'a>(&'a self) -> impl Iterator<Item = (Position, TileContent)> + 'a {
+    pub fn content(&self) -> impl Iterator<Item = (Position, TileContent)> + '_ {
         Position::iter().map(|p| (p, self.get_at(p).expect("should be inbound")))
     }
 
+    #[allow(unused)]
     pub fn to_unicode_string(&self) -> String {
         let cap: usize = (LEVEL_WIDTH as usize + 1) * LEVEL_HEIGHT as usize * 4 /* 4 bytes per unicode symbol */;
         let mut res = String::with_capacity(cap);
@@ -62,7 +63,7 @@ impl LevelState {
         if cap != res.capacity() {
             eprintln!("Computed capacity should have suffice.");
         }
-        return res;
+        res
     }
 
     pub fn parse_level(&mut self, input: &str) -> Result<(), ()>
@@ -75,11 +76,11 @@ impl LevelState {
         for p in Position::iter() {
             let c = segs.next().ok_or(())?;
             let (c, rem) = c.split_at(1);
-            if rem != "" {
+            if !rem.is_empty() {
                 eprintln!("Extra Tile attributes not yet implemented");
                 return Err(());
             }
-            let mut tile: GroundTile = GroundTile::Floor { isEntry: false };
+            let mut tile: GroundTile = GroundTile::Floor { is_entry: false };
             let tunnels: Tunnels = Default::default();
             if c == "W" {
                 tile = GroundTile::Wall {
@@ -92,11 +93,11 @@ impl LevelState {
                     tunnels,
                 };
             } else if c == "T" {
-                tile = GroundTile::Floor { isEntry: false };
+                tile = GroundTile::Floor { is_entry: false };
             } else if c == "E" {
                 tile = GroundTile::Hole;
             } else if c == "S" {
-                tile = GroundTile::Floor { isEntry: true };
+                tile = GroundTile::Floor { is_entry: true };
                 self.set_paquerette(p);
             } else if c == "B" {
                 self.set_bunny(p);
@@ -113,18 +114,20 @@ impl LevelState {
         p.into_clamped_usize(LEVEL_WIDTH, LEVEL_HEIGHT)
     }
 
-    pub fn move_to(&mut self, d: Direction) -> Result<(), ()> {
+    pub fn move_to(&mut self, d: Direction) -> Result<Vec<Self>, ()> {
         let new_pos = self.get_paquerette() + d;
         if self.get_at(new_pos).ok_or(())?.0.is_solid() {
             return Err(());
         }
         self.set_paquerette(new_pos);
 
+        let mut res = Vec::new();
+
         for bun_index in 0..self.buns.len() {
             let Some(mut bun) = self.buns[bun_index] else {
                 continue;
             };
-            
+
             // if not in level anymore, skip
             if !bun.is_inner() {
                 continue;
@@ -133,7 +136,7 @@ impl LevelState {
             //TODO: loop this for tunnels
 
             //if can't see paquerette, skip
-            let Some((mut dir, mut dist)) = self.paquerette.distance_to_straight_line(bun) else {
+            let Some((dir, dist)) = self.paquerette.distance_to_straight_line(bun) else {
                 continue;
             };
 
@@ -148,13 +151,15 @@ impl LevelState {
             }
 
             //if P can't get to the bun, skip
-            if self.is_solid(self.paquerette + dir) || dist == 2 && self.is_solid(self.paquerette + dir + dir){
-
+            if self.is_solid(self.paquerette + dir)
+                || dist == 2 && self.is_solid(self.paquerette + dir + dir)
+            {
+                continue;
             }
 
-            let mut started_moving = false;
-            let mut last_branch_alternative: Option<(Position, Direction)> = None;
-            let mut last_branch_was_after_move = false;
+            // let mut started_moving = false;
+            // let mut last_branch_alternative: Option<(Position, Direction)> = None;
+            // let mut last_branch_was_after_move = false;
             loop {
                 let mut dir_to_move = None;
                 let dir_cands = [dir, dir.turn_left(), dir.turn_right()];
@@ -179,18 +184,20 @@ impl LevelState {
                     break;
                 };
 
-                started_moving = true;
+                // started_moving = true;
                 bun += dir_to_move;
                 while self
                     .is_solid_for_bun_from(bun + dir_to_move.turn_left(), dir_to_move.turn_left())
                     && self.is_solid_for_bun_from(
                         bun + dir_to_move.turn_right(),
                         dir_to_move.turn_right(),
-                    ) && !self.is_solid_for_bun_from(bun + dir_to_move, dir_to_move)
+                    )
+                    && !self.is_solid_for_bun_from(bun + dir_to_move, dir_to_move)
                 {
+                    res.push(self.clone());
+                    res.last_mut().unwrap().buns[bun_index] = Some(bun);
                     bun += dir_to_move;
                 }
-
 
                 // let straight = bun + dir;
                 // let left = bun + dir.turn_left();
@@ -242,12 +249,12 @@ impl LevelState {
             }
             self.buns[bun_index] = Some(bun);
         }
-        Ok(())
+        Ok(res)
     }
 
     pub fn bun_can_see_deadend(&self, mut cur_pos: Position, dir: Direction) -> bool {
         cur_pos += dir;
-        while !self.is_solid_for_bun_from(cur_pos,dir) && cur_pos.is_inner() {
+        while !self.is_solid_for_bun_from(cur_pos, dir) && cur_pos.is_inner() {
             //println!("{dir:?}{cur_pos:?}");
             cur_pos += dir;
             let left = dir.turn_left();
@@ -259,19 +266,15 @@ impl LevelState {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     pub fn is_solid_for_bun_from(&self, p: Position, dir: Direction) -> bool {
-        self
-            .get_at(p)
+        self.get_at(p)
             .is_some_and(|(t, _)| t.is_solid_for_bun_from(dir))
     }
 
     pub fn is_solid(&self, p: Position) -> bool {
-        self
-            .get_at(p)
-            .is_some_and(|t| t.0.is_solid())
+        self.get_at(p).is_some_and(|t| t.0.is_solid())
     }
-
 }

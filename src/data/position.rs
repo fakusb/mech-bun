@@ -1,7 +1,6 @@
 use std::ops::{Add, AddAssign};
-use strum::IntoEnumIterator;
 
-use super::grid::{Direction, LEVEL_WIDTH, LEVEL_HEIGHT};
+use super::grid::{Direction, LEVEL_HEIGHT, LEVEL_WIDTH};
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Default, Clone, Copy)]
 pub struct Position {
@@ -33,21 +32,21 @@ impl Iterator for Position {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.x += 1;
-        if self.x >= LEVEL_WIDTH as i8 {
+        if self.x >= LEVEL_WIDTH {
             self.x = 0;
             self.y += 1;
-            if self.y >= LEVEL_HEIGHT as i8 {
+            if self.y >= LEVEL_HEIGHT {
                 return None;
             }
         };
-        return Some(self.clone());
+        Some(*self)
     }
 }
 
 impl Position {
     /// Iterate over inner positions of a level
     pub fn iter() -> impl Iterator<Item = Position> {
-        Position{x:-1,y:0}
+        Position { x: -1, y: 0 }
     }
 }
 
@@ -68,7 +67,7 @@ impl<N: TryFrom<i8>> TryInto<(N, N)> for Position {
     fn try_into(self) -> Result<(N, N), <N as TryFrom<i8>>::Error> {
         let x = self.x.try_into()?;
         let y = self.y.try_into()?;
-        return Ok((x, y));
+        Ok((x, y))
     }
 }
 
@@ -78,45 +77,47 @@ impl Add<Position> for Position {
     fn add(self, rhs: Position) -> Self::Output {
         match (self.x.checked_add(rhs.x), self.y.checked_add(rhs.y)) {
             (Some(x), Some(y)) => (x, y).try_into().unwrap(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
 
 impl Position {
-    pub fn into_clamped_usize<N: TryInto<usize>>(self, max_x: N, max_y: N) -> Option<(usize, usize)> {
+    pub fn into_clamped_usize<N: TryInto<usize>>(
+        self,
+        max_x: N,
+        max_y: N,
+    ) -> Option<(usize, usize)> {
         let (x, y) = TryInto::<(usize, usize)>::try_into(self).ok()?;
-        let max_x : usize = max_x.try_into().ok()?;
-        let max_y : usize = max_y.try_into().ok()?;
+        let max_x: usize = max_x.try_into().ok()?;
+        let max_y: usize = max_y.try_into().ok()?;
         if x >= max_x || y >= max_y {
             return None;
         }
-        return Some((x, y));
+        Some((x, y))
     }
 
     /// distance and direction same position gest arbitrary direction, and distance 0
-    /// 
-    pub fn distance_to_straight_line(self, p:Position) -> Option<(Direction,u8)>{
+    ///
+    pub fn distance_to_straight_line(self, p: Position) -> Option<(Direction, u8)> {
         let dx = self.x - p.x;
         let dy = self.y - p.y;
         if dx == 0 {
             if dy < 0 {
-                Some((Direction::Down,-dy as u8))
+                Some((Direction::Down, -dy as u8))
             } else {
-                Some((Direction::Up,dy as u8 ))
+                Some((Direction::Up, dy as u8))
             }
         } else if self.y == p.y {
             if dx < 0 {
-                Some((Direction::Right,-dx as u8))
+                Some((Direction::Right, -dx as u8))
             } else {
-                Some((Direction::Left,dx as u8 ))
+                Some((Direction::Left, dx as u8))
             }
-        }
-        else {
+        } else {
             None
         }
     }
-
 }
 
 impl Add<Direction> for Position {
@@ -128,13 +129,10 @@ impl Add<Direction> for Position {
 }
 
 impl AddAssign<Direction> for Position {
-
     fn add_assign(&mut self, rhs: Direction) {
         *self = self.add(rhs)
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -152,7 +150,7 @@ mod tests {
     fn test_distance_to_straight_line() {
         let p = Position::default();
         for d in Direction::iter() {
-            assert_eq!(p.distance_to_straight_line(p + d), Some((d,1)) )
+            assert_eq!(p.distance_to_straight_line(p + d), Some((d, 1)))
         }
     }
 }
