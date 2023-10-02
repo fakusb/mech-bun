@@ -63,7 +63,7 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
             // ))?
             .flush()?;
 
-        queue_print_level(&mut stdout, display_queue.peek().unwrap_or(&state))?
+        queue_print_level(&mut stdout, display_queue.peek().unwrap_or(state))?
             .queue(cursor::Hide)?
             //.queue(PrintStyledContent(String::from("HAHA").dark_blue()))?
             .queue(MoveToNextLine(1))?

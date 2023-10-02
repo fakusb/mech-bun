@@ -43,7 +43,7 @@ impl World {
     pub fn enter(&self) -> anyhow::Result<WorldState> {
         for rc in &self.burrows {
             let b = rc.borrow();
-            if b.levels.len() <= 1 || !b.levels[1].is_some() {
+            if b.levels.len() <= 1 || b.levels[1].is_none() {
                 continue;
             }
             if b.has_surface_entry {

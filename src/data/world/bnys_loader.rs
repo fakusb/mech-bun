@@ -76,7 +76,7 @@ fn load_world(world_dir: impl AsRef<Path>) -> Result<World> {
         .with_context(|| format!("Parsing {}.", config_path.display()))?;
 
     let mut burrows: Vec<Rc<RefCell<Burrow>>> = Vec::new();
-    burrows.resize_with(config.burrows.len(),||Default::default());
+    burrows.resize_with(config.burrows.len(),Default::default);
 
     // get names for backlinks
     let mut burrows_by_name: HashMap<String, Weak<RefCell<Burrow>>> = Default::default();
@@ -109,7 +109,7 @@ fn load_world(world_dir: impl AsRef<Path>) -> Result<World> {
 
     Ok(World {
         title: config.title,
-        burrows: burrows,
+        burrows,
     })
 }
 
@@ -122,7 +122,7 @@ fn load_levels(level_dir: impl AsRef<Path>, depth: usize) -> Result<Vec<Option<L
         let path_level = level_dir.join(format!("{id}.level"));
         let both_exist = path_json.as_path()
             .try_exists()
-            .and_then(|b1| path_level.try_exists().and_then(|b2| Ok((b1, b2))))
+            .and_then(|b1| path_level.try_exists().map(|b2| (b1, b2)))
             .with_context(|| {
                 format!(
                     "Accessing files {} and {}.",
