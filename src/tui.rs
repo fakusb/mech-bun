@@ -93,17 +93,15 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
                     kind: KeyEventKind::Press,
                     ..
                 }) => {
-                    if c == KeyCode::Char('c') {
-                        abort = true;
-                    } else if let Ok::<Direction, _>(dir) = c.try_into() {
+                    if let Ok::<Direction, _>(dir) = c.try_into() {
                         if applied_input {
                             continue;
                         }
-                        state.move_to(dir).ok().map(|res| {
+                        if let Ok(res) = state.move_to(dir) {
                             display_queue = res.into_iter().peekable();
                             next_animation_step = Instant::now() + duration_step;
                             applied_input = true
-                        });
+                        };
                     }
                 }
                 _ => (),

@@ -113,11 +113,11 @@ fn load_world(world_dir: impl AsRef<Path>) -> Result<World> {
     })
 }
 
-fn load_levels(level_dir: impl AsRef<Path>, depth: usize) -> Result<Vec<Option<Level>>> {
+fn load_levels(level_dir: impl AsRef<Path>, depth: usize) -> Result<Vec<Option<LevelTemplate>>> {
     let level_dir = level_dir.as_ref();
     let mut levels = Vec::new();
-    levels.resize_with(depth + 1, || None);
-    for id in 1..=depth {
+    levels.resize_with(depth + 1, ||None);
+    for (id, level) in levels.iter_mut().enumerate().skip(1) {
         let path_json = level_dir.join(format!("{id}.json"));
         let path_level = level_dir.join(format!("{id}.level"));
         let both_exist = path_json.as_path()
@@ -146,7 +146,7 @@ fn load_levels(level_dir: impl AsRef<Path>, depth: usize) -> Result<Vec<Option<L
         let level_data = std::fs::read_to_string(&path_level)
             .with_context(|| format!("Accessing file {}.", path_level.display()))?;
 
-        levels[id] = Some(Level {
+        *level = Some(LevelTemplate {
             name: json.name,
             data: level_data,
             tools: tools_to_array(&json.tools),

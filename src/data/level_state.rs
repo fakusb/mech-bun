@@ -199,52 +199,6 @@ impl LevelState {
                     bun += dir_to_move;
                 }
 
-                // let straight = bun + dir;
-                // let left = bun + dir.turn_left();
-                // let right: Position = bun + dir.turn_right();
-                // let can_straight = !self
-                //     .get_at(straight)
-                //     .is_some_and(|(t, _)| t.is_solid_for_bun_from(-dir));
-                // let can_left = !self
-                //     .get_at(left)
-                //     .is_some_and(|(t, _)| t.is_solid_for_bun_from(-dir));
-                // let can_right = !self
-                //     .get_at(right)
-                //     .is_some_and(|(t, _)| t.is_solid_for_bun_from(-dir));
-
-                // let can_branch = can_left || can_right;
-                // if can_left {
-                //     last_branch_alternative = Some((left, dir.turn_left()));
-                //     last_branch_was_after_move = started_moving;
-                // } else if can_right {
-                //     last_branch_alternative = Some((right, dir.turn_right()));
-                //     last_branch_was_after_move = started_moving;
-                // }
-                // //continue straight if in narrow corridor or close to P
-                // if can_straight && (dist < 2 || started_moving && !can_branch) {
-                //     bun = straight;
-                //     dist += 1;
-                //     started_moving = true;
-                //     continue;
-                // }
-
-                // //timewarp if we ran into a dead end
-                // if !can_straight && last_branch_was_after_move {
-                //     if let Some((bun1, dir1)) = last_branch_alternative {
-                //         bun = bun1;
-                //         dir = dir1;
-                //         started_moving = true;
-                //         dist = 100; //hack so we don't see P anymore
-                //         continue;
-                //     }
-                // }
-                // // if dist < 2 {
-                // //     if can_left {
-                // //         bun = left
-                // //     } else if can_right {
-                // //         bun = right
-                // //     }
-                // // }
                 break;
             }
             self.buns[bun_index] = Some(bun);

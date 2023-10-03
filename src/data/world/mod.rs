@@ -22,11 +22,11 @@ pub struct World {
 struct Burrow {
     has_surface_entry: bool,
     links: [Option<Weak<RefCell<Burrow>>>; Direction::COUNT],
-    levels: Vec<Option<Level>>, // indexing starts with 1, so 0 is always supposed to be None,
+    levels: Vec<Option<LevelTemplate>>, // indexing starts with 1, so 0 is always supposed to be None,
 }
 
 #[derive(Debug)]
-struct Level {
+struct LevelTemplate {
     name: String,
     data: String,
     tools: [u8; Item::COUNT],
