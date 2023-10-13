@@ -167,7 +167,7 @@ where
     //out.queue(SetForegroundColor(if highlight {Color::Rgb { r: 245, g: 245, b: 245 }} else {Color::White}))?;
     match item {
         None => match tile {
-            GroundTile::Hole => out.queue(Print("🕳  "))?.queue(MoveLeft(1)),
+            GroundTile::Hole => out.queue(Print("🕳   "))?.queue(MoveLeft(1)),
             GroundTile::Wall {
                 breakable: true, ..
             } => out.queue(Print("░░░")),
