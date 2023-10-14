@@ -87,11 +87,10 @@ impl<'a> WorldState<'a> {
             }
             MoveEffect::MoveAdjacent(dir) => {
                 let target_burrow = self.burrow.as_ref().borrow().get_link(dir)?;
-                let target_level = target_burrow.borrow().levels[self.depth]
+                let target_level = target_burrow.borrow().levels[self.depth].as_ref()
                     .ok_or_else(|| anyhow!("Level was not declared"))?;
-                self.
                 self.burrow = target_burrow;
-                self.Ok(())
+                Ok(())
             }
         }
     }

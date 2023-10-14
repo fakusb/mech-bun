@@ -1,12 +1,15 @@
 use crate::data::{
     grid::{Direction, GroundTile, TileItem},
-    level_state::{TileContent, MoveRes},
-    LevelState, world::WorldState,
+    level_state::{MoveRes, TileContent},
+    world::WorldState,
+    LevelState,
 };
 
 use std::{
     io::{self, stdout, Write},
-    time::{Duration, Instant}, slice::{Iter, IterMut}, vec::IntoIter,
+    slice::{Iter, IterMut},
+    time::{Duration, Instant},
+    vec::IntoIter, ops::DerefMut,
 };
 
 use crossterm::{
@@ -37,9 +40,20 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
         //.queue(SetSize(DRAW_WIDTH, DRAW_HEIGHT))?
         .flush()?;
 
+    let mut stdout = scopeguard::guard(stdout, |mut stdout| {
+        stdout
+            .queue(cursor::EnableBlinking)
+            .and_then(|s|s.queue(cursor::Show))
+            //.queue(SetSize(DRAW_WIDTH, DRAW_HEIGHT))?
+            .and_then(|s|s.queue(SetSize(cols, rows)))
+            .and_then(io::Stdout::flush);
+        disable_raw_mode().is_ok();
+    });
+
     stdout.execute(Clear(ClearType::All))?;
 
-    let mut display_queue: std::iter::Peekable<IntoIter<LevelState>> = Vec::new().into_iter().peekable();
+    let mut display_queue: std::iter::Peekable<IntoIter<LevelState>> =
+        Vec::new().into_iter().peekable();
     let mut effect_queue = None;
     let duration_step = Duration::from_millis(100);
     let mut next_animation_step = Instant::now();
@@ -64,7 +78,7 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
             // ))?
             .flush()?;
 
-        queue_print_level(&mut stdout, display_queue.peek().unwrap_or(state))?
+        queue_print_level(stdout.deref_mut(), display_queue.peek().unwrap_or(state))?
             .queue(cursor::Hide)?
             //.queue(PrintStyledContent(String::from("HAHA").dark_blue()))?
             .queue(MoveToNextLine(1))?
@@ -98,7 +112,7 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
                         if applied_input {
                             continue;
                         }
-                        if let Ok(MoveRes {history,effect}) = state.move_to(Some(dir)) {
+                        if let Ok(MoveRes { history, effect }) = state.move_to(Some(dir)) {
                             display_queue = history.into_iter().peekable();
                             effect_queue = effect;
                             next_animation_step = Instant::now() + duration_step;
@@ -111,11 +125,8 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
         }
     }
 
-    io::stdout().queue(SetSize(cols, rows))?.flush()?;
-    disable_raw_mode()?;
     Ok(())
 }
-
 
 pub(crate) fn run_world(state: &mut WorldState) -> io::Result<()> {
     run_level(&mut state.level_state)
@@ -169,7 +180,7 @@ where
     //out.queue(SetForegroundColor(if highlight {Color::Rgb { r: 245, g: 245, b: 245 }} else {Color::White}))?;
     match item {
         None => match tile {
-            GroundTile::Hole => out.queue(Print("🕳  "))?.queue(MoveLeft(1)),
+            GroundTile::Hole => out.queue(Print("🕳   "))?.queue(MoveLeft(1)),
             GroundTile::Wall {
                 breakable: true, ..
             } => out.queue(Print("░░░")),

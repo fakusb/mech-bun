@@ -5,6 +5,16 @@
     "version": "2.0.0",
     "configurations": [
         {
+            "name": "(linux) Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/mech-bun",
+            "args": [],
+            "stopOnEntry": false,
+            "cwd": "${workspaceRoot}",
+            "env": {}
+        },
+        {
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
@@ -14,6 +24,6 @@
             "cwd": "${workspaceRoot}",
             "environment": [],
             "externalConsole": true
-        },
+        }
     ]
 }
