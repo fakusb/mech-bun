@@ -92,6 +92,12 @@ impl GroundTile {
             GroundTile::Floor { .. } | GroundTile::Hole => false,
         }
     }
+    pub fn is_hole(self) -> bool {
+        match self {
+            GroundTile::Hole { .. } => true,
+            GroundTile::Floor { .. } | GroundTile::Wall { .. } => false,
+        }
+    }
     pub fn is_solid_for_bun_from(self, _: Direction) -> bool {
         match self {
             GroundTile::Wall { .. } => true,

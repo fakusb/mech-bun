@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+
 use super::{
     grid::{Direction, GroundTile, TileItem, Tunnels, LEVEL_HEIGHT, LEVEL_WIDTH},
     Position,
@@ -113,15 +115,42 @@ impl LevelState {
     pub fn index_for(&self, p: Position) -> Option<(usize, usize)> {
         p.into_clamped_usize(LEVEL_WIDTH, LEVEL_HEIGHT)
     }
+}
 
-    pub fn move_to(&mut self, d: Direction) -> Result<Vec<Self>, ()> {
+/// For now, only the location-changing effects. May need effects like MoveBunny and GetItem later.
+pub(crate) enum MoveEffect {
+    DropHole(),
+    MoveAdjacent(Direction),
+}
+
+pub struct MoveRes {
+    pub history: Vec<LevelState>,
+    pub(crate) effect: Option<MoveEffect>,
+}
+
+impl LevelState {
+    pub fn move_to(&mut self, d: Option<Direction>) -> anyhow::Result<MoveRes> {
         let new_pos = self.get_paquerette() + d;
-        if self.get_at(new_pos).ok_or(())?.0.is_solid() {
-            return Err(());
+        let Some((new_tile, new_item)) = self.get_at(new_pos) else {
+            return Ok(MoveRes {
+                history: [].into(),
+                effect: Some(MoveEffect::MoveAdjacent(
+                    d.ok_or(anyhow!("P is at invalid position."))?,
+                )),
+            });
+        };
+
+        if new_tile.is_solid() {
+            return Err(anyhow!("Walked into wall."));
         }
         self.set_paquerette(new_pos);
 
-        let mut res = Vec::new();
+        let mut history: Vec<LevelState> = Vec::new();
+        let mut effect: Option<MoveEffect> = None;
+
+        if (new_tile.is_hole()){
+            effect = Some(MoveEffect::DropHole())
+        }
 
         for bun_index in 0..self.buns.len() {
             let Some(mut bun) = self.buns[bun_index] else {
@@ -194,8 +223,8 @@ impl LevelState {
                     )
                     && !self.is_solid_for_bun_from(bun + dir_to_move, dir_to_move)
                 {
-                    res.push(self.clone());
-                    res.last_mut().unwrap().buns[bun_index] = Some(bun);
+                    history.push(self.clone());
+                    history.last_mut().unwrap().buns[bun_index] = Some(bun);
                     bun += dir_to_move;
                 }
 
@@ -203,7 +232,7 @@ impl LevelState {
             }
             self.buns[bun_index] = Some(bun);
         }
-        Ok(res)
+        Ok(MoveRes { history, effect })
     }
 
     pub fn bun_can_see_deadend(&self, mut cur_pos: Position, dir: Direction) -> bool {

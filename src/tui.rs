@@ -1,6 +1,6 @@
 use crate::data::{
     grid::{Direction, GroundTile, TileItem},
-    level_state::TileContent,
+    level_state::{TileContent, MoveRes},
     LevelState, world::WorldState,
 };
 
@@ -40,6 +40,7 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
     stdout.execute(Clear(ClearType::All))?;
 
     let mut display_queue: std::iter::Peekable<IntoIter<LevelState>> = Vec::new().into_iter().peekable();
+    let mut effect_queue = None;
     let duration_step = Duration::from_millis(100);
     let mut next_animation_step = Instant::now();
 
@@ -97,8 +98,9 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
                         if applied_input {
                             continue;
                         }
-                        if let Ok(res) = state.move_to(dir) {
-                            display_queue = res.into_iter().peekable();
+                        if let Ok(MoveRes {history,effect}) = state.move_to(Some(dir)) {
+                            display_queue = history.into_iter().peekable();
+                            effect_queue = effect;
                             next_animation_step = Instant::now() + duration_step;
                             applied_input = true
                         };

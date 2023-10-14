@@ -134,6 +134,15 @@ impl AddAssign<Direction> for Position {
     }
 }
 
+impl Add<Option<Direction>> for Position {
+    type Output = Position;
+
+    fn add(self, rhs: Option<Direction>) -> Self::Output {
+        rhs.map_or(self, |d|{self+d})
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::data::grid::Direction;
