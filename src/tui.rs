@@ -173,7 +173,7 @@ where
             } => out.queue(Print("░░░")),
             GroundTile::Wall {
                 breakable: false, ..
-            } => out.queue(Print("▓▓▓")),
+            } => out.queue(Print("▓▓▓")), 
             GroundTile::Floor { is_entry: false } => out.queue(Print("   ")),
             GroundTile::Floor { is_entry: true } => out.queue(Print(" ꜛ ")),
         },
