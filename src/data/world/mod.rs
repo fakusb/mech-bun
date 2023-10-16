@@ -42,10 +42,10 @@ impl Burrow {
 }
 
 #[derive(Debug)]
-struct LevelTemplate {
-    name: String,
-    data: String,
-    tools: [u8; Item::COUNT],
+pub(crate) struct LevelTemplate {
+    pub(crate)name: String,
+    pub(crate)data: String,
+    pub(crate)tools: [u8; Item::COUNT],
 }
 
 pub struct WorldState<'a> {
@@ -56,21 +56,22 @@ pub struct WorldState<'a> {
 }
 
 impl World {
-    pub fn enter(&self) -> anyhow::Result<WorldState> {
+    pub fn enter(&self,depth : Option<usize>) -> anyhow::Result<WorldState> {
         for rc in &self.burrows {
             let b = rc.borrow();
-            if b.levels.len() <= 1 || b.levels[1].is_none() {
+            let depth = depth.unwrap_or(1);
+            if b.levels.len() <= depth || b.levels[depth].is_none() {
                 continue;
             }
             if b.has_surface_entry {
                 let mut state = LevelState::new();
                 state
-                    .parse_level(&b.levels[1].as_ref().unwrap().data)
+                    .parse_level(&b.levels[depth].as_ref().unwrap().data)
                     .map_err(|_| anyhow!("Parsing error"));
                 return Ok(WorldState {
                     world: self,
                     burrow: rc.clone(),
-                    depth: 1,
+                    depth: depth,
                     level_state: state,
                 });
             }
@@ -81,15 +82,22 @@ impl World {
 
 impl<'a> WorldState<'a> {
     pub(crate) fn apply_move_effect(&mut self, e: MoveEffect) -> anyhow::Result<()> {
+
         match e {
             MoveEffect::DropHole() => {
-                todo!()
+                self.depth+=1;
+                let tmp = self.burrow.borrow();
+                let target_level = tmp.levels[self.depth].as_ref()
+                    .ok_or_else(|| anyhow!("Level was not declared"))?;
+                self.level_state.instantiate_template(target_level);
+                Ok(())
             }
             MoveEffect::MoveAdjacent(dir) => {
                 let target_burrow = self.burrow.as_ref().borrow().get_link(dir)?;
                 let target_level = target_burrow.borrow().levels[self.depth].as_ref()
                     .ok_or_else(|| anyhow!("Level was not declared"))?;
                 self.burrow = target_burrow;
+                todo!("Go to boprder etc.");
                 Ok(())
             }
         }

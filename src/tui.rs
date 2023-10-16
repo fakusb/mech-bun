@@ -23,7 +23,8 @@ use crossterm::{
 //const DRAW_HEIGHT: u16 = crate::data::grid::LEVEL_HEIGHT as u16 + 3;
 //const DRAW_WIDTH: u16 = LEVEL_WIDTH as u16 + 2;
 
-pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
+
+pub(crate) fn run_world(state: &mut WorldState) -> io::Result<()> {
     let (cols, rows) = size()?;
     enable_raw_mode()?;
     //thread::sleep(Duration::from_secs(2));
@@ -44,7 +45,6 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
         stdout
             .queue(cursor::EnableBlinking)
             .and_then(|s|s.queue(cursor::Show))
-            //.queue(SetSize(DRAW_WIDTH, DRAW_HEIGHT))?
             .and_then(|s|s.queue(SetSize(cols, rows)))
             .and_then(io::Stdout::flush);
         disable_raw_mode().is_ok();
@@ -62,9 +62,14 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
         let mut applied_input = false;
         let frame_start = Instant::now();
         let next_frame = frame_start + delta_t;
-        if display_queue.peek().is_some() && frame_start > next_animation_step {
-            display_queue.next();
-            next_animation_step = frame_start + duration_step;
+        if (frame_start > next_animation_step) {
+            if display_queue.peek().is_some() {
+                display_queue.next();
+                next_animation_step = frame_start + duration_step;
+            } else if let Some(eff) = effect_queue {
+                state.apply_move_effect(eff);
+                effect_queue = None;
+            }
         }
         // stdout
         //     //.queue(Clear(ClearType::All))?
@@ -78,7 +83,7 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
             // ))?
             .flush()?;
 
-        queue_print_level(stdout.deref_mut(), display_queue.peek().unwrap_or(state))?
+        queue_print_level(stdout.deref_mut(), display_queue.peek().unwrap_or(&state.level_state))?
             .queue(cursor::Hide)?
             //.queue(PrintStyledContent(String::from("HAHA").dark_blue()))?
             .queue(MoveToNextLine(1))?
@@ -112,7 +117,7 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
                         if applied_input {
                             continue;
                         }
-                        if let Ok(MoveRes { history, effect }) = state.move_to(Some(dir)) {
+                        if let Ok(MoveRes { history, effect }) = state.level_state.move_to(Some(dir)) {
                             display_queue = history.into_iter().peekable();
                             effect_queue = effect;
                             next_animation_step = Instant::now() + duration_step;
@@ -128,9 +133,6 @@ pub(crate) fn run_level(state: &mut LevelState) -> io::Result<()> {
     Ok(())
 }
 
-pub(crate) fn run_world(state: &mut WorldState) -> io::Result<()> {
-    run_level(&mut state.level_state)
-}
 
 impl TryFrom<KeyCode> for Direction {
     type Error = ();

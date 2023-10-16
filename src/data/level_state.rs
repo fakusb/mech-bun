@@ -2,7 +2,7 @@ use anyhow::anyhow;
 
 use super::{
     grid::{Direction, GroundTile, TileItem, Tunnels, LEVEL_HEIGHT, LEVEL_WIDTH},
-    Position,
+    Position, world::LevelTemplate,
 };
 
 pub type TileContent = (GroundTile, Option<TileItem>);
@@ -115,9 +115,22 @@ impl LevelState {
     pub fn index_for(&self, p: Position) -> Option<(usize, usize)> {
         p.into_clamped_usize(LEVEL_WIDTH, LEVEL_HEIGHT)
     }
+
+    pub(crate) fn instantiate_template(&mut self, target_level: &LevelTemplate) -> Result<(),()> {
+        self.buns = Vec::new();
+        self.parse_level(&target_level.data)?;
+        self.set_tools(target_level.tools);
+        Ok(())
+
+    }
+
+    fn set_tools(&self, tools: [u8; 4]) -> () {
+        eprint!("TOD: set_tools")
+    }
 }
 
 /// For now, only the location-changing effects. May need effects like MoveBunny and GetItem later.
+#[derive(Clone, Copy)]
 pub(crate) enum MoveEffect {
     DropHole(),
     MoveAdjacent(Direction),

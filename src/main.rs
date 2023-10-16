@@ -9,7 +9,7 @@ fn main() -> anyhow::Result<()> {
     let worlds = world::bnys_loader::load_worlds(dir_worlds)?;
     let world = &worlds[0];
 
-    let mut state = world.enter()?;
+    let mut state = world.enter(Some(4))?;
 
     let _ = tui::run_world(&mut state);
 
